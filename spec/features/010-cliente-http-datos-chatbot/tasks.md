@@ -1,0 +1,21 @@
+# Tareas — 010
+
+- [x] `apiClient.ts`: `validateStatus`, interceptor único de request (correlación + auth + log dev), dos interceptors de response (log, renovación+errores), retry con backoff solo `GET`.
+- [x] `refreshCoordinator.ts` para renovaciones concurrentes coalescidas.
+- [x] `endpoints/auth.ts`: `refreshSession` devuelve token rotado si el backend lo envía.
+- [x] `types/api/routines.ts` y `types/api/auth.ts` con schema Zod, nullables y anotaciones de divergencia.
+- [x] `local/routinesLocalSource.ts` + `local/outboxQueue.ts` + `repositories/routinesRepository.ts`.
+- [x] `hooks/useNetworkStatus.ts`.
+- [x] `useRoutines.ts` migrado al repositorio, con `AbortSignal` y `retry` explícito.
+- [x] `config/env.ts`: `assertSecureProductionConfig`, invocado en `main.tsx`.
+- [x] `.env.production` documenta la excepción de HTTPS para el emulador.
+- [x] Chatbot (`features/chatbot/`) integrado en `Home.tsx`.
+- [x] `docs/evidence/ai-usage-log.md`.
+- [x] `spec/constitution/api-integration.md` — registro de cambios + tabla de correspondencia.
+- [x] `spec/constitution/roadmap.md` actualizado.
+- [x] Inventario de datos, clasificación, finalidad y retención documentados en `docs/data-storage-inventory.md`.
+- [x] Caché local versionada con TTL, fecha de última sincronización e indicador visible de datos potencialmente desactualizados.
+- [x] Limpieza completa del almacén local al cerrar sesión; tokens fuera de Preferences y almacenados en SecureStorage.
+- [x] Outbox con UUID de operación, máximo de 5 intentos y backoff creciente; estrategia de conflictos documentada.
+- [ ] Validación manual en emulador Android forzando expiración de token (pendiente de hardware — dejar marcado como pendiente en roadmap).
+- [ ] Evidencia manual de modo avión en `docs/evidence/offline-mode.md`.

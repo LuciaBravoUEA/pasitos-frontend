@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; echo \"$f\" | grep -q 'spec/features/' && printf '{\"systemMessage\":\"⚠️ Si acabas de completar una feature, actualiza spec/constitution/roadmap.md (mueve la feature a ✅ Hecho) y spec/constitution/api-integration.md si tocaste un contrato de API nuevo.\"}' || true; } 2>/dev/null || true"
+          }
+        ]
+      }
+    ]
+  }
+}

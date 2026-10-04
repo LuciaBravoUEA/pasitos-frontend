@@ -1,0 +1,6 @@
+- [x] Cambiar identidad visual y metadatos de empaquetado a Pasitos Mágicos
+- [x] Diseñar pantalla principal con rutinas diarias
+- [x] Añadir gamificación de progreso y recompensas visuales/auditivas
+- [x] Añadir reporte local simple para padres y docentes
+- [x] Validar pruebas y regresiones
+- [x] Actualizar roadmap

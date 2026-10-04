@@ -1,0 +1,24 @@
+# Tareas — 013 · Calidad, observabilidad y lanzamiento
+
+- [x] Instalar `@vitest/coverage-v8`, `@sentry/capacitor`, `@sentry/react@10.69.0` (versión exacta).
+- [x] `docs/evidence/risk-inventory.md` — inventario de riesgos jerarquizado y decisión escrita de qué se prueba y qué no.
+- [x] `services/telemetry/monitoring.ts` + `monitoring.test.ts`.
+- [x] Exportar `redactContext` desde `logger.ts` para reutilizar en monitoreo.
+- [x] Conectar monitoreo: `main.tsx` (`initMonitoring`), `sessionStore.ts` (`setMonitoringUser`/`clearMonitoringUser`), `apiClient.ts` (`captureMonitoringError`).
+- [x] `.env.example` documenta `VITE_SENTRY_DSN` y `VITE_APP_VERSION` (opcionales).
+- [x] `vite.config.ts` — bloque `test.coverage`; `package.json` — script `test:coverage`.
+- [x] `errorMapper.branches.test.ts` — ramas de `buildFromBackendCode` sin recorrer.
+- [x] `apiClient.contract.test.ts` — doble de transporte 200/422/timeout.
+- [x] `RoutineListPage.test.tsx` — cuatro estados con repositorio falso.
+- [x] `CreateRoutinePage.validation.test.tsx` — envío inválido bloqueado + error de servidor asociado a campo + reproducción del bug.
+- [x] Corregir el bug reproducido en `CreateRoutinePage.tsx`.
+- [ ] `cypress/e2e/routine-creation-flow.cy.ts` — retirada a pedido del usuario; agregar solo si el profesor la exige explícitamente.
+- [x] `.github/workflows/ci.yml` — lint + typecheck + test:coverage + build en cada push/PR.
+- [x] `docs/evidence/coverage-report.md` — cobertura leída como mapa.
+- [x] `docs/evidence/performance-profiling-checklist.md` — guía para que el usuario la ejecute en dispositivo físico.
+- [x] `docs/evidence/pre-release-checklist.md` — checklist de publicación con resultado de cada punto.
+- [x] Verificar ninguna prueba desactivada en todo `src/`.
+- [ ] Usuario: confirmar si el profesor exige el E2E explícitamente; si sí, pedir que se agregue de nuevo.
+- [ ] Usuario: crear proyecto real en Sentry, configurar `VITE_SENTRY_DSN`, provocar un fallo y confirmar traza+versión en el panel.
+- [ ] Usuario: perfilar la app en modo release sobre un dispositivo físico Android/iOS, identificar hilo UI vs. trazado, corregir un problema de fluidez y remedir.
+- [ ] Actualizar `spec/constitution/roadmap.md` a "Hecho ✅" una vez completados los tres puntos anteriores.

@@ -1,0 +1,9 @@
+.tracking-page { min-height: 100%; padding: var(--pm-space-6) var(--pm-space-4) calc(env(safe-area-inset-bottom) + var(--pm-space-8)); color: var(--pm-color-text-default); background: var(--pm-color-background); }
+.tracking-page > * { width: min(100%, var(--pm-content-max-width)); margin-inline: auto; }
+.tracking-page__header { margin-bottom: var(--pm-space-6); }
+.tracking-page__header p { margin: 0 0 var(--pm-space-2); color: var(--pm-color-brand-text); font-size: var(--pm-font-size-xs); font-weight: 750; text-transform: uppercase; }
+.tracking-page__header h1 { margin: 0; font-size: var(--pm-font-size-2xl); }
+.tracking-grid, .tracking-routine { display: grid; gap: var(--pm-space-3); }
+.tracking-summary { margin-bottom: var(--pm-space-6); }
+.tracking-routine { margin-top: var(--pm-space-6); }
+.tracking-routine h2 { margin: 0; font-size: var(--pm-font-size-xl); }

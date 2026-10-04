@@ -1,0 +1,7 @@
+.task-reward { margin-block: var(--pm-space-4); }
+.task-reward__notice { position: fixed; z-index: 100; bottom: calc(env(safe-area-inset-bottom) + 1rem); left: 50%; transform: translateX(-50%); width: min(92%, 28rem); max-height: 50vh; overflow: auto; border: 1px solid currentColor; border-radius: var(--pm-radius-md); background: var(--pm-color-reward-surface); color: var(--pm-color-reward-text); box-shadow: 0 4px 20px #0003; }
+.task-reward__celebration { display: flex; align-items: center; gap: var(--pm-space-3); padding: var(--pm-space-4); border-radius: var(--pm-radius-md); background: var(--pm-color-reward-surface); color: var(--pm-color-reward-text); }
+.task-reward__celebration p { margin: var(--pm-space-2) 0 0; }
+.task-reward__star { flex-shrink: 0; font-size: 2.5rem; animation: task-reward-pop 550ms ease-out; }
+@keyframes task-reward-pop { from { transform: scale(0.65) rotate(-15deg); } 65% { transform: scale(1.15) rotate(5deg); } to { transform: scale(1) rotate(0); } }
+@media (prefers-reduced-motion: reduce) { .task-reward__star { animation: none; } }

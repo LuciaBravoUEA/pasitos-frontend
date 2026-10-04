@@ -1,0 +1,72 @@
+.chatbot {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 1000;
+}
+
+.chatbot__toggle {
+  --border-radius: 50%;
+  width: 3.25rem;
+  height: 3.25rem;
+}
+
+.chatbot__panel {
+  position: fixed;
+  right: 1rem;
+  bottom: 5rem;
+  width: min(22rem, calc(100vw - 2rem));
+  max-height: 60vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ion-background-color, #fff);
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.chatbot__log {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.chatbot__message {
+  max-width: 85%;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.chatbot__message p {
+  margin: 0;
+}
+
+.chatbot__message--bot {
+  align-self: flex-start;
+  background: var(--ion-color-light, #f4f4f4);
+}
+
+.chatbot__message--user {
+  align-self: flex-end;
+  background: var(--ion-color-primary, #3880ff);
+  color: #fff;
+}
+
+.chatbot__form {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-top: 1px solid var(--ion-color-light, #f4f4f4);
+}
+
+.chatbot__form ion-input {
+  flex: 1;
+}

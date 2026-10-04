@@ -1,0 +1,203 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { connectAndroidWebView } from './android-webview.mjs';
+
+const adb = (...args) => execFileSync('adb', args, { encoding: 'utf8' }).trim();
+const originalUser = adb('shell', 'am', 'get-current-user');
+const originalAirplane = adb('shell', 'settings', 'get', 'global', 'airplane_mode_on');
+const originalWifi = adb('shell', 'settings', 'get', 'global', 'wifi_on');
+const originalData = adb('shell', 'settings', 'get', 'global', 'mobile_data');
+const created = adb('shell', 'pm', 'create-user', 'CodexOffline018');
+const profile = created.match(/user id (\d+)/)?.[1];
+if (!profile || profile === '0' || profile === originalUser) throw new Error('No se pudo crear un perfil Android aislado');
+const username = 'offline018_' + randomUUID().slice(0, 8);
+const secondUsername = username + '_second';
+const password = randomUUID() + '!aA1';
+let client;
+let accountCreated = false;
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+const root = 'Array.from(document.querySelectorAll("ion-router-outlet > .ion-page:not(.ion-page-hidden)")).at(-1) || document.body';
+const text = () => client.evaluate('(' + root + ')?.innerText ?? ""');
+const wait = async (predicate, label) => {
+  for (let i = 0; i < 100; i++) { if (await predicate()) return; await sleep(400); }
+  throw new Error('No se alcanzó: ' + label);
+};
+const connect = async () => {
+  for (let i = 0; i < 40; i++) { try { client = await connectAndroidWebView(); return; } catch { await sleep(500); } }
+  throw new Error('WebView no disponible');
+};
+const click = async label => {
+  await wait(async () => client.evaluate('Array.from((' + root + ').querySelectorAll("ion-button,button")).some(e=>e.textContent.trim()===' + JSON.stringify(label) + '&&!e.disabled)'), 'botón ' + label);
+  await client.evaluate('(()=>{const el=Array.from((' + root + ').querySelectorAll("ion-button,button")).find(e=>e.textContent.trim()===' + JSON.stringify(label) + '&&!e.disabled);if(!el)throw new Error("Botón no disponible");el.click()})()');
+  await sleep(400);
+};
+const input = (label, value) => client.evaluate('(()=>{const el=Array.from((' + root + ').querySelectorAll("ion-input")).find(e=>e.label===' + JSON.stringify(label) + ');if(!el)throw new Error("Campo no disponible");el.value=' + JSON.stringify(value) + ';el.dispatchEvent(new CustomEvent("ionInput",{detail:{value:' + JSON.stringify(value) + '},bubbles:true}))})()');
+const fillPassword = () => client.evaluate('(()=>{const el=(' + root + ').querySelector("input[name=password]");Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,"value").set.call(el,' + JSON.stringify(password) + ');el.dispatchEvent(new Event("input",{bubbles:true}))})()');
+const submit = () => client.evaluate('(' + root + ').querySelector("form").requestSubmit()');
+const screenshot = async name => {
+  mkdirSync('docs/evidence/018-android', { recursive: true });
+  const result = await client.send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync('docs/evidence/018-android/' + name + '.png', Buffer.from(result.data, 'base64'));
+};
+const restart = async () => {
+  client?.close();
+  adb('shell', 'am', 'force-stop', '--user', profile, 'com.pasitosmagicos.app');
+  adb('shell', 'am', 'start', '--user', profile, '-n', 'com.pasitosmagicos.app/.MainActivity');
+  await sleep(1500);
+  await connect();
+};
+const airplane = enabled => {
+  adb('shell', 'cmd', 'connectivity', 'airplane-mode', enabled ? 'enable' : 'disable');
+  if (enabled) { adb('shell', 'svc', 'wifi', 'disable'); adb('shell', 'svc', 'data', 'disable'); }
+  else { if (originalWifi === '1') adb('shell', 'svc', 'wifi', 'enable'); if (originalData === '1') adb('shell', 'svc', 'data', 'enable'); }
+};
+const api = async (path, token, body) => {
+  const response = await fetch('http://localhost:3001/api' + path, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) });
+  if (!response.ok) throw new Error('API de verificación: HTTP ' + response.status);
+  return response.status === 204 ? null : response.json();
+};
+
+try {
+  airplane(false);
+  adb('shell', 'am', 'force-stop', '--user', originalUser, 'com.pasitosmagicos.app');
+  adb('shell', 'cmd', 'package', 'install-existing', '--user', profile, 'com.pasitosmagicos.app');
+  adb('shell', 'am', 'switch-user', profile);
+  await wait(async () => adb('shell', 'am', 'get-current-user') === profile && adb('shell', 'am', 'get-started-user-state', profile).includes('RUNNING_UNLOCKED'), 'perfil Android listo');
+  adb('shell', 'settings', '--user', profile, 'put', 'secure', 'user_setup_complete', '1');
+  adb('shell', 'settings', '--user', profile, 'put', 'system', 'screen_off_timeout', '1800000');
+  adb('shell', 'input', 'keyevent', 'KEYCODE_WAKEUP');
+  adb('shell', 'wm', 'dismiss-keyguard');
+  await restart();
+  await wait(async () => (await text()).includes('Iniciar sesión'), 'login inicial');
+  airplane(true);
+  await restart();
+  await wait(async () => (await text()).includes('Iniciar sesión') && (await text()).includes('Sin conexión'), 'primer acceso offline bloqueado');
+  console.log('OK: primer login requiere conexión');
+  airplane(false);
+  await wait(async () => await client.evaluate('navigator.onLine'), 'red restaurada');
+  await click('Crear una cuenta nueva');
+  await input('Nombre', 'Estudiante offline');
+  await input('Usuario', username);
+  await input('Correo', username + '@example.test');
+  await fillPassword();
+  await submit();
+  accountCreated = true;
+  await wait(async () => (await text()).includes('Comienza tu primera rutina'), 'registro y sesión real');
+  console.log('OK: registro y sesión real');
+  await click('Ver rutinas guardadas');
+  await click('Crear rutina');
+  await input('Título', 'Leer sin conexión');
+  await submit();
+  await wait(async () => (await text()).includes('La rutina se guardó correctamente.'), 'rutina remota');
+  await click('Continuar');
+  await wait(async () => (await text()).includes('Editar rutina'), 'detalle descargado');
+  await click('Inicio');
+  await wait(async () => (await text()).includes('Leer sin conexión'), 'progreso descargado');
+  const { data: credentials } = await api('/auth/mobile/login', null, { username, password });
+  const { data: identity } = await api('/auth/session', credentials.sessionToken);
+  const date = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Guayaquil', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  const { data: progress } = await api('/estudiantes/' + identity.id + '/progreso?date=' + date, credentials.sessionToken);
+  const taskId = progress.routines[0].tasks[0].id;
+  for (let i = 0; i < 21; i++) await api('/tareas/' + taskId + '/completar', credentials.sessionToken, { completed: i % 2 === 0, date });
+  await click('Ver historial de actividades');
+  await wait(async () => (await text()).includes('Página 1 de 2'), 'historial paginado descargado');
+  await click('Volver');
+  await wait(async () => (await text()).includes('Desmarcar'), 'progreso actualizado');
+  airplane(true);
+  await wait(async () => (await text()).includes('Sin conexión'), 'aviso al perder red');
+  assert.equal(await client.evaluate('Array.from((' + root + ').querySelectorAll("ion-button")).find(e=>e.textContent.trim()==="Desmarcar")?.disabled'), true);
+  await screenshot('inicio-offline');
+  await restart();
+  await wait(async () => (await text()).includes('Estudiante offline') && (await text()).includes('Leer sin conexión') && (await text()).includes('Sin conexión'), 'reapertura offline con progreso');
+  console.log('OK: sesión y progreso cifrados sobreviven reapertura en modo avión');
+  await click('Ver historial de actividades');
+  await wait(async () => (await text()).includes('Página 1 de 2') && (await text()).includes('Última actualización'), 'historial offline');
+  await screenshot('historial-offline');
+  await click('Siguiente');
+  await wait(async () => (await text()).includes('páginas descargadas previamente'), 'página no descargada');
+  console.log('OK: historial descargado y aviso de página ausente');
+  await click('Anterior');
+  await wait(async () => (await text()).includes('21 cambios registrados'), 'regreso a página descargada');
+  await click('Volver');
+  await click('Ver rutinas guardadas');
+  await wait(async () => (await text()).includes('Leer sin conexión'), 'lista offline');
+  await click('Ver detalle');
+  await wait(async () => (await text()).includes('Editar rutina'), 'detalle offline');
+  assert.equal(await client.evaluate('Array.from((' + root + ').querySelectorAll("ion-button")).find(e=>e.textContent.trim()==="Editar rutina")?.disabled'), true);
+  await screenshot('rutina-offline');
+  await click('Volver a rutinas');
+  await click('Crear rutina');
+  await input('Título', 'Rutina pendiente offline');
+  await submit();
+  await wait(async () => (await text()).includes('Rutina guardada en este dispositivo.'), 'creación offline');
+  await click('Continuar');
+  await wait(async () => (await text()).includes('pendientes de sincronización'), 'cola visible');
+  await screenshot('cola-offline');
+  const encrypted = await client.evaluate('new Promise((resolve,reject)=>{const r=indexedDB.open("pasitos-magicos-local",1);r.onsuccess=()=>{const db=r.result;const t=db.transaction("records","readonly");const q=t.objectStore("records").getAll();q.onsuccess=()=>{resolve(q.result.every(value=>typeof value==="string"&&value.startsWith("encrypted-v1:")));db.close()};q.onerror=()=>reject(Error("lectura fallida"))};r.onerror=()=>reject(Error("base no disponible"))})');
+  assert.equal(encrypted, true, 'IndexedDB contiene únicamente valores cifrados');
+  console.log('OK: historial, página ausente, detalle, acciones bloqueadas y cola cifrada');
+  airplane(false);
+  await wait(async () => (await text()).includes('Rutina pendiente offline') && !(await text()).includes('Sin conexión'), 'reconexión y sincronización');
+  const { data: routines } = await api('/rutinas', credentials.sessionToken);
+  assert.equal(routines.filter(routine => routine.title === 'Rutina pendiente offline').length, 1);
+  await screenshot('reconexion');
+  console.log('OK: reconexión valida sesión y sincroniza una sola creación');
+  await click('Inicio');
+  airplane(true);
+  await client.evaluate('(async()=>{const plugin=window.Capacitor.Plugins.SecureStorage;const options={prefixedKey:"capacitor-storage_pasitos_magicos_offline_session",sync:false};const {data}=await plugin.internalGetItem(options);const snapshot=JSON.parse(data);snapshot.expiresAt=Date.now()-1;await plugin.internalSetItem({...options,data:JSON.stringify(snapshot),access:0})})()');
+  await restart();
+  await wait(async () => (await text()).includes('Iniciar sesión'), 'snapshot expirado bloqueado');
+  console.log('OK: acceso offline vencido exige conexión');
+  airplane(false);
+  await wait(async () => (await text()).includes('Cerrar sesión'), 'sesión validada de nuevo');
+  const appToken = await client.evaluate('(async()=>{const {data}=await window.Capacitor.Plugins.SecureStorage.internalGetItem({prefixedKey:"capacitor-storage_pasitos_magicos_session_token",sync:false});return data})()');
+  await api('/auth/logout', appToken, {});
+  await restart();
+  await wait(async () => (await text()).includes('Iniciar sesión'), '401 confirmado invalida sesión');
+  console.log('OK: sesión revocada no restaura snapshot');
+  await input('Usuario', username);
+  await fillPassword();
+  await submit();
+  await wait(async () => (await text()).includes('Cerrar sesión'), 'login nuevo');
+  airplane(true);
+  await click('Cerrar sesión');
+  await wait(async () => (await text()).includes('Iniciar sesión'), 'logout offline');
+  await restart();
+  await wait(async () => (await text()).includes('Iniciar sesión'), 'logout conservado tras reapertura');
+  console.log('OK: reconexión, creación única y cierre de sesión offline');
+  airplane(false);
+  await wait(async () => await client.evaluate('navigator.onLine'), 'red para otra cuenta');
+  await click('Crear una cuenta nueva');
+  await input('Nombre', 'Otra cuenta offline');
+  await input('Usuario', secondUsername);
+  await input('Correo', secondUsername + '@example.test');
+  await fillPassword();
+  await submit();
+  await wait(async () => (await text()).includes('Comienza tu primera rutina'), 'segunda cuenta vacía');
+  assert.ok(!(await text()).includes('Leer sin conexión'));
+  airplane(true);
+  await restart();
+  await wait(async () => (await text()).includes('Otra cuenta offline') && (await text()).includes('Comienza tu primera rutina'), 'segunda cuenta offline aislada');
+  assert.ok(!(await text()).includes('Rutina pendiente offline'));
+  await screenshot('otra-cuenta-offline');
+  console.log('OK: cambio de cuenta conserva aislamiento');
+} catch (error) {
+  if (client) await screenshot('fallo').catch(() => undefined);
+  throw error;
+} finally {
+  client?.close();
+  airplane(originalAirplane === '1');
+  if (originalWifi === '1') adb('shell', 'svc', 'wifi', 'enable');
+  if (originalData === '1') adb('shell', 'svc', 'data', 'enable');
+  adb('shell', 'am', 'switch-user', originalUser);
+  await wait(async () => adb('shell', 'am', 'get-current-user') === originalUser, 'perfil original restaurado');
+  adb('shell', 'am', 'stop-user', '-w', profile);
+  adb('shell', 'pm', 'remove-user', profile);
+  if (accountCreated) {
+    const cleanup = 'const {PrismaClient}=require("@prisma/client");const p=new PrismaClient();(async()=>{await p.user.deleteMany({where:{username:{in:' + JSON.stringify([username, secondUsername]) + '}}});await p.$disconnect()})().catch(()=>process.exit(1));';
+    execFileSync('docker', ['exec', 'pasitos-backend', 'node', '-e', cleanup]);
+  }
+  console.log('Perfil temporal y cuenta propia eliminados; red y perfil originales restaurados');
+}

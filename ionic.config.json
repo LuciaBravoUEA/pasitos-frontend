@@ -1,0 +1,7 @@
+{
+  "name": "Pasitos Mágicos",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

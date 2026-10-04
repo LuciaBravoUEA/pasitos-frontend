@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Pasitos Mágicos</string>
+    <string name="title_activity_main">Pasitos Mágicos</string>
+    <string name="package_name">com.pasitosmagicos.app</string>
+    <string name="custom_url_scheme">com.pasitosmagicos.app</string>
+</resources>
